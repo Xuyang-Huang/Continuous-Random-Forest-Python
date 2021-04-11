@@ -13,6 +13,15 @@ import os
 
 
 class RandomForest:
+    """
+    Attributes:
+        __n_tree: An integer of tree number.
+        __min_leaf: An integer of minimum leaf.
+        __n_class: An integer of class number.
+        tree: A list, stored all decision trees.
+        __split_method: String, choose 'gini' or 'entropy'.
+        __pruning_prop: A floating number, proportion of data number to prune DT.
+    """
     def __init__(self, n_tree, min_leaf, n_try, split_method='gini', pruning_prop=0.2):
         self.__n_tree = n_tree
         self.__min_leaf = min_leaf
@@ -23,26 +32,40 @@ class RandomForest:
         self.__n_try = n_try
 
     def train(self, data, label, n_class, multi_processing=True):
+        """Train random forest.
+
+        :param data: A 2-D Numpy array.
+        :param label: A 1-D Numpy array.
+        :param n_class: An integer of class number.
+        :param multi_processing: A bool, if True using multi-processing.
+        :return:
+        """
         self.__n_class = n_class
         if multi_processing:
             n_cores = mp.cpu_count() - 1
             p = mp.pool.Pool(n_cores)
-            results = [p.apply_async(self.train_thread, args=(data, label, self.__n_tree // n_cores)) for _ in range(n_cores)]
+            results = [p.apply_async(self.train_mp, args=(data, label, self.__n_tree // n_cores)) for _ in range(n_cores)]
+            if self.__n_tree % n_cores != 0:
+                results.append(p.apply_async(self.train_mp, args=(data, label, self.__n_tree % n_cores)))
             results = [p.get() for p in results]
 
-            if self.__n_tree % n_cores != 0:
-                results.append(self.train_thread(data, label, self.__n_tree % n_cores))
             [self.tree.extend(item) for item in results]
 
         else:
             for i in range(self.__n_tree):
                 train, val = self.bagging(data, label)
-
                 cart_dt = CartDecisionTree(self.__min_leaf, self.__split_method, self.__pruning_prop, self.__n_try)
                 cart_dt.train(train[0], train[1], self.__n_class, val[0], val[1])
                 self.tree.append(cart_dt)
 
-    def train_thread(self, data, label, n_tree):
+    def train_mp(self, data, label, n_tree):
+        """Training on multi-processing.
+
+        :param data: A 2-D Numpy array.
+        :param label: A 1-D Numpy array.
+        :param n_tree: An integer of tree number.
+        :return: decision trees.
+        """
         print('Start pid', os.getpid())
         sub_tree = []
         for i in range(n_tree):
@@ -54,6 +77,11 @@ class RandomForest:
         return sub_tree
 
     def predict(self, data):
+        """Traverse RF then get a result.
+
+        :param data: A 2-D Numpy array.
+        :return: Prediction.
+        """
         raw_result = [[] for _ in range(self.__n_class)]
         result_bin = []
         result = np.zeros(len(data))
@@ -72,6 +100,12 @@ class RandomForest:
         return result
 
     def eval(self, data, label):
+        """
+
+        :param data: A 2-D Numpy array.
+        :param label: A 1-D Numpy array.
+        :return: Prediction, Accuracy.
+        """
         raw_result = [[] for _ in range(self.__n_class)]
         result_bin = []
         result = np.zeros(len(data))
@@ -92,6 +126,12 @@ class RandomForest:
         return result, acc
 
     def bagging(self, data, label):
+        """Bagging method to prepare input data.
+
+        :param data: A 2-D Numpy array.
+        :param label: A 1-D Numpy array.
+        :return: (train data and label), (val data and label).
+        """
         train_rand_index = np.arange(len(data))
         np.random.shuffle(train_rand_index)
         val_rand_index = train_rand_index[int(0.65 * len(data)):]

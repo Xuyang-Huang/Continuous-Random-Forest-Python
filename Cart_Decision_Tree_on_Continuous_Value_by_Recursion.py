@@ -121,21 +121,13 @@ class CartDecisionTree:
 
             if (len(_split_label[0]) == 0) | (len(_split_label[1]) == 0):
                 return None
-            elif len(_split_label[0]) < self.__min_leaf:
-                _node.left_class = np.argmax(np.bincount(_split_label[0]))
-            elif (_split_label[0] == _split_label[0][0]).all():
-                _node.left_class = np.argmax(np.bincount(_split_label[0]))
-            else:
+            _node.left_class = np.argmax(np.bincount(_split_label[0]))
+            if not ((len(_split_label[0]) < self.__min_leaf) | (_split_label[0] == _split_label[0][0]).all()):
                 _node.left = grow(_split_data[0], _split_label[0])
-                _node.left_class = np.argmax(np.bincount(_split_label[0]))
 
-            if len(_split_label[1]) < self.__min_leaf:
-                _node.right_class = np.argmax(np.bincount(_split_label[1]))
-            elif (_split_label[1] == _split_label[1][0]).all():
-                _node.right_class = np.argmax(np.bincount(_split_label[1]))
-            else:
+            _node.right_class = np.argmax(np.bincount(_split_label[1]))
+            if not ((len(_split_label[1]) < self.__min_leaf) | (_split_label[1] == _split_label[1][0]).all()):
                 _node.right = grow(_split_data[1], _split_label[1])
-                _node.right_class = np.argmax(np.bincount(_split_label[1]))
 
             return _node
 
@@ -377,14 +369,13 @@ def prepare_data(proportion):
 
 
 if __name__ == '__main__':
-
     minimum_leaf = 1
     train, val, num_class = prepare_data(0.8)
     num_try = int(np.sqrt(train[0].shape[1]))
-    cart_dt = CartDecisionTree(minimum_leaf, 'gini', pruning_prop=0.2, n_try=num_try)
+    cart_dt = CartDecisionTree(minimum_leaf, 'gini', pruning_prop=0.3, n_try=num_try)
     cart_dt.train(train[0], train[1], num_class)
     _, _, train_acc = cart_dt.eval(train[0], train[1])
     pred, pred_gt, val_acc = cart_dt.eval(val[0], val[1])
     print('train_acc', train_acc)
     print('val_acc', val_acc)
-    cart_dt.print_tree()
+    # cart_dt.print_tree()
