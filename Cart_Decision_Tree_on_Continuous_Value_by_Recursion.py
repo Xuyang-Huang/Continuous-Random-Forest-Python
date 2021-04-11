@@ -377,35 +377,14 @@ def prepare_data(proportion):
 
 
 if __name__ == '__main__':
-    from scipy.io import loadmat
-    train_data_path = '../MatDataset/image-segmentation/image-segmentation_Train.mat'
-    test_data_path = '../MatDataset/image-segmentation/image-segmentation_Test.mat'
-    all_acc = []
-    train = loadmat(train_data_path)
-    train_data = train['Data']
-    train_label = train['Label'].flatten()
-    test = loadmat(test_data_path)
-    test_data = test['Data']
-    test_label = test['Label'].flatten()
-    num_class = len(list(set(train_label)))
+
     minimum_leaf = 1
-    # train, val, num_class = prepare_data(0.8)
-    num_try = int(np.sqrt(train_data.shape[1]))
-    cart_dt = CartDecisionTree(minimum_leaf, 'entropy', pruning_prop=None, n_try=num_try)
-    cart_dt.train(train_data, train_label, num_class)
-    _, _, train_acc = cart_dt.eval(train_data, train_label)
-    pred, pred_gt, val_acc = cart_dt.eval(test_data, test_label)
+    train, val, num_class = prepare_data(0.8)
+    num_try = int(np.sqrt(train[0].shape[1]))
+    cart_dt = CartDecisionTree(minimum_leaf, 'gini', pruning_prop=0.2, n_try=num_try)
+    cart_dt.train(train[0], train[1], num_class)
+    _, _, train_acc = cart_dt.eval(train[0], train[1])
+    pred, pred_gt, val_acc = cart_dt.eval(val[0], val[1])
     print('train_acc', train_acc)
     print('val_acc', val_acc)
-    # cart_dt.print_tree()
-
-    # minimum_leaf = 1
-    # # train, val, num_class = prepare_data(0.8)
-    # num_try = int(np.sqrt(train[0].shape[1]))
-    # cart_dt = CartDecisionTree(minimum_leaf, 'gini', pruning_prop=0.2, n_try=num_try)
-    # cart_dt.train(train[0], train[1], num_class)
-    # _, _, train_acc = cart_dt.eval(train[0], train[1])
-    # pred, pred_gt, val_acc = cart_dt.eval(val[0], val[1])
-    # print('train_acc', train_acc)
-    # print('val_acc', val_acc)
-    # cart_dt.print_tree()
+    cart_dt.print_tree()
